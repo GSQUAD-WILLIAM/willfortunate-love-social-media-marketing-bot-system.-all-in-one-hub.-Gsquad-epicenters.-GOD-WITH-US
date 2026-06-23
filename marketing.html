@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Add favicon to prevent 404 error -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+    <!-- Load Supabase - errors are caught and ignored -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Your original styles */
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 300px;
+            width: 90%;
+            position: relative;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background-color: #f0f0f0;
+            color: #333;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            border: none;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .back-button:hover {
+            background-color: #e0e0e0;
+            transform: scale(1.05);
+        }
+
+        .back-button:active {
+            transform: scale(0.95);
+        }
+
+        .logo-image {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #4CAF50;
+            margin-top: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .bot-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .bot-title {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .click-text {
+            color: #888;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+
+        .action-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            display: inline-block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, background-color 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        .action-button:hover {
+            transform: scale(1.02);
+            background-color: #45a049;
+        }
+
+        .action-button:active {
+            transform: scale(0.98);
+        }
+
+        /* Hidden status - no visual impact */
+        .hidden-status {
+            display: none;
+        }
+
+        /* Blur placeholder animation */
+        .image-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 15px auto 20px;
+        }
+
+        .blur-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            filter: blur(10px);
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .logo-image {
+            position: relative;
+            z-index: 2;
+            opacity: 0;
+            transition: opacity 0.5s;
+            margin: 0;
+        }
+
+        .logo-image.loaded {
+            opacity: 1;
+        }
+
+        /* Stats display (cached locally) */
+        .stats-container {
+            font-size: 12px;
+            color: #999;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px dashed #eee;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Back Button -->
+        <a href="javascript:history.back()" class="back-button" title="Go back">←</a>
+
+        <!-- Logo with blur placeholder and Base64 fallback -->
+        <div class="image-container">
+            <div class="blur-placeholder" id="blurPlaceholder"></div>
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%234CAF50' opacity='0.2'/%3E%3Ctext x='50' y='55' font-size='40' text-anchor='middle' fill='%23333' font-family='Arial'%3EWF%3C/text%3E%3C/svg%3E"
+                alt="WILLFORTUNATE Logo" class="logo-image" id="mainLogo">
+        </div>
+
+        <div class="bot-name">WILLFORTUNATE</div>
+        <div class="bot-title">Social Media Marketing Bot</div>
+
+        <!-- PosterMyWall Button -->
+        <a href="https://www.postermywall.com" target="_blank" rel="noopener noreferrer" class="action-button"
+            id="posterwallBtn">
+            OPEN WILLFORTUNATE POSTERWALL →
+        </a>
+
+        <div class="click-text">Click to WILLFORTUNATE POSTER WALL</div>
+
+        <!-- Local stats (cached, no egress) -->
+        <div class="stats-container" id="statsDisplay">
+            <span id="visitCount">Loading...</span>
+        </div>
+    </div>
+
+    <script>
+        // ULTIMATE CACHING STRATEGY - 14 DAY REFRESH FOR STATIC ELEMENTS
+        (function () {
+            // Service Worker Registration for offline caching
+            if ('serviceWorker' in navigator) {
+                // Create and register a service worker inline
+                const swCode = `
+                    const CACHE_NAME = 'willfortunate-v2';
+                    const STATIC_ASSETS = [
+                        'logo-placeholder',
+                        'page-stats',
+                        'theme-colors'
+                    ];
+                    
+                    self.addEventListener('install', e => {
+                        e.waitUntil(
+                            caches.open(CACHE_NAME).then(() => self.skipWaiting())
+                        );
+                    });
+                    
+                    self.addEventListener('fetch', e => {
+                        const url = e.request.url;
+                        
+                        // Cache images and static assets
+                        if (url.includes('logo.jpeg') || url.includes('static')) {
+                            e.respondWith(
+                                caches.match(e.request).then(response => {
+                                    return response || fetch(e.request).then(networkResponse => {
+                                        const responseClone = networkResponse.clone();
+                                        caches.open(CACHE_NAME).then(cache => {
+                                            cache.put(e.request, responseClone);
+                                        });
+                                        return networkResponse;
+                                    });
+                                })
+                            );
+                        }
+                    });
+                    
+                    self.addEventListener('activate', e => {
+                        e.waitUntil(self.clients.claim());
+                    });
+                `;
+
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+
+                navigator.serviceWorker.register(swUrl)
+                    .then(() => URL.revokeObjectURL(swUrl))
+                    .catch(() => { });
+            }
+
+            // COMPLETELY SILENT TRACKING WITH INDEXEDDB CACHE - 14 DAYS REFRESH
+            try {
+                // REPLACED KEYS - Using the same project for both tracking and images
+                const SUPABASE_URL = 'https://drxbqncibycnfitgrfim.supabase.co';
+                const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRyeGJxbmNpYnljbmZpdGdyZmltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MjY3NjIsImV4cCI6MjA4OTQwMjc2Mn0.1cbr9h-Hhvy2xCs52mU2P5itbkjWPZVYm6-_XeKlIEs';
+
+                // 14 days in milliseconds
+                const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
+
+                // IndexedDB helpers
+                function openDB() {
+                    return new Promise((resolve, reject) => {
+                        const request = indexedDB.open('WillfortunateCache', 4);
+                        request.onupgradeneeded = (e) => {
+                            const db = e.target.result;
+                            if (!db.objectStoreNames.contains('images')) {
+                                db.createObjectStore('images');
+                            }
+                            if (!db.objectStoreNames.contains('tracking')) {
+                                db.createObjectStore('tracking');
+                            }
+                            if (!db.objectStoreNames.contains('static')) {
+                                db.createObjectStore('static'); // For other static elements
+                            }
+                        };
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                }
+
+                async function getFromCache(store, key) {
+                    try {
+                        const db = await openDB();
+                        return new Promise((resolve) => {
+                            const tx = db.transaction(store, 'readonly');
+                            const objectStore = tx.objectStore(store);
+                            const req = objectStore.get(key);
+                            req.onsuccess = () => {
+                                resolve(req.result);
+                                db.close();
+                            };
+                            req.onerror = () => {
+                                resolve(null);
+                                db.close();
+                            };
+                        });
+                    } catch {
+                        return null;
+                    }
+                }
+
+                async function saveToCache(store, key, value) {
+                    try {
+                        const db = await openDB();
+                        return new Promise((resolve) => {
+                            const tx = db.transaction(store, 'readwrite');
+                            const objectStore = tx.objectStore(store);
+                            objectStore.put(value, key);
+                            tx.oncomplete = () => {
+                                db.close();
+                                resolve();
+                            };
+                        });
+                    } catch { }
+                }
+
+                // Load logo with multiple caching strategies - 14 days refresh
+                async function loadLogo() {
+                    const img = document.getElementById('mainLogo');
+                    const blurEl = document.getElementById('blurPlaceholder');
+
+                    try {
+                        // Try IndexedDB first (14 days cache)
+                        const cached = await getFromCache('images', 'logo_data');
+                        if (cached && Date.now() - cached.timestamp < FOURTEEN_DAYS) {
+                            img.src = cached.data;
+                            img.classList.add('loaded');
+                            if (blurEl) blurEl.style.opacity = '0';
+                            return;
+                        }
+
+                        // Try Service Worker cache
+                        if ('caches' in window) {
+                            const cache = await caches.open('willfortunate-v2');
+                            const response = await cache.match('https://drxbqncibycnfitgrfim.supabase.co/storage/v1/object/public/media/logo.jpeg');
+                            if (response) {
+                                const blob = await response.blob();
+                                const url = URL.createObjectURL(blob);
+                                img.src = url;
+                                img.classList.add('loaded');
+                                if (blurEl) blurEl.style.opacity = '0';
+
+                                // Convert to Base64 for IndexedDB
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                    saveToCache('images', 'logo_data', {
+                                        data: reader.result,
+                                        timestamp: Date.now()
+                                    });
+                                };
+                                reader.readAsDataURL(blob);
+                                return;
+                            }
+                        }
+
+                        // Finally fetch from Supabase with cache headers (14 days)
+                        const response = await fetch('https://drxbqncibycnfitgrfim.supabase.co/storage/v1/object/public/media/logo.jpeg', {
+                            headers: {
+                                'Cache-Control': 'max-age=1209600' // 14 days in seconds
+                            }
+                        });
+
+                        if (response.ok) {
+                            const blob = await response.blob();
+                            const url = URL.createObjectURL(blob);
+                            img.src = url;
+                            img.classList.add('loaded');
+                            if (blurEl) blurEl.style.opacity = '0';
+
+                            // Cache everywhere
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                // IndexedDB with 14 days
+                                saveToCache('images', 'logo_data', {
+                                    data: reader.result,
+                                    timestamp: Date.now()
+                                });
+
+                                // Service Worker cache
+                                if ('caches' in window) {
+                                    caches.open('willfortunate-v2').then(cache => {
+                                        cache.put('https://drxbqncibycnfitgrfim.supabase.co/storage/v1/object/public/media/logo.jpeg', new Response(blob));
+                                    });
+                                }
+                            };
+                            reader.readAsDataURL(blob);
+                        }
+                    } catch (e) {
+                        // Already have SVG fallback in src attribute
+                        img.classList.add('loaded');
+                        if (blurEl) blurEl.style.opacity = '0';
+                    }
+                }
+
+                // Cache other static elements (bot name, title, button text, etc.)
+                async function cacheStaticElements() {
+                    const staticData = {
+                        botName: 'WILLFORTUNATE',
+                        botTitle: 'Social Media Marketing Bot',
+                        buttonText: 'OPEN WILLFORTUNATE POSTERWALL →',
+                        clickText: 'Click to WILLFORTUNATE POSTER WALL',
+                        version: '1.0',
+                        lastUpdated: Date.now()
+                    };
+
+                    // Check if we need to refresh static content (14 days)
+                    const cached = await getFromCache('static', 'static_content');
+                    if (!cached || Date.now() - cached.timestamp > FOURTEEN_DAYS) {
+                        // Store static content locally
+                        await saveToCache('static', 'static_content', {
+                            data: staticData,
+                            timestamp: Date.now()
+                        });
+                    }
+
+                    // Apply static content from cache (faster than fetching)
+                    document.querySelector('.bot-name').textContent = staticData.botName;
+                    document.querySelector('.bot-title').textContent = staticData.botTitle;
+                    document.getElementById('posterwallBtn').textContent = staticData.buttonText;
+                    document.querySelector('.click-text').textContent = staticData.clickText;
+                }
+
+                // Track page view with 14-day refresh (static analytics)
+                async function trackPageView(supabase) {
+                    const now = Date.now();
+
+                    // Check IndexedDB first
+                    const lastTracked = await getFromCache('tracking', 'page_view_time');
+
+                    if (!lastTracked || (now - parseInt(lastTracked)) > FOURTEEN_DAYS) {
+                        // Track page view (only every 14 days)
+                        supabase
+                            .from('page_views')
+                            .insert([{
+                                page: 'willfortunate_landing',
+                                viewed_at: new Date().toISOString(),
+                                refresh_rate: '14_days'
+                            }])
+                            .then(() => { })
+                            .catch(() => { });
+
+                        // Save to IndexedDB
+                        await saveToCache('tracking', 'page_view_time', now.toString());
+
+                        // Update local visit counter
+                        updateLocalVisitCount();
+                    }
+                }
+
+                // Local visit counter (cached, no egress)
+                async function updateLocalVisitCount() {
+                    let visits = await getFromCache('static', 'visit_count') || 0;
+                    visits = parseInt(visits) + 1;
+                    await saveToCache('static', 'visit_count', visits);
+
+                    // Update display
+                    const statsEl = document.getElementById('visitCount');
+                    if (statsEl) {
+                        statsEl.textContent = `Local visits: ${visits} (14-day refresh)`;
+                    }
+                }
+
+                // Track button click with 14-day refresh
+                async function trackButtonClick(supabase, buttonName) {
+                    const now = Date.now();
+                    const lastTracked = await getFromCache('tracking', `btn_${buttonName}_time`);
+
+                    if (!lastTracked || (now - parseInt(lastTracked)) > FOURTEEN_DAYS) {
+                        supabase
+                            .from('button_clicks')
+                            .insert([{
+                                button: buttonName,
+                                clicked_at: new Date().toISOString(),
+                                refresh_rate: '14_days'
+                            }])
+                            .then(() => { })
+                            .catch(() => { });
+
+                        await saveToCache('tracking', `btn_${buttonName}_time`, now.toString());
+                    }
+                }
+
+                // Track back button with 14-day refresh
+                async function trackBackClick(supabase) {
+                    const now = Date.now();
+                    const lastTracked = await getFromCache('tracking', 'back_click_time');
+
+                    if (!lastTracked || (now - parseInt(lastTracked)) > FOURTEEN_DAYS) {
+                        supabase
+                            .from('back_clicks')
+                            .insert([{
+                                clicked_at: new Date().toISOString(),
+                                refresh_rate: '14_days'
+                            }])
+                            .then(() => { })
+                            .catch(() => { });
+
+                        await saveToCache('tracking', 'back_click_time', now.toString());
+                    }
+                }
+
+                // Cache theme/preferences (14 days)
+                async function cacheUserPreferences() {
+                    const preferences = {
+                        theme: 'default',
+                        colorScheme: 'light',
+                        fontSize: 'medium'
+                    };
+
+                    await saveToCache('static', 'user_prefs', {
+                        data: preferences,
+                        timestamp: Date.now()
+                    });
+                }
+
+                // Only proceed if Supabase is available
+                if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+
+                    // Create client with storage disabled
+                    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                        auth: {
+                            persistSession: false,
+                            autoRefreshToken: false,
+                            detectSessionInUrl: false,
+                            storage: {
+                                getItem: function () { return null; },
+                                setItem: function () { },
+                                removeItem: function () { }
+                            }
+                        }
+                    });
+
+                    // Load all static elements with 14-day cache
+                    loadLogo();
+                    cacheStaticElements();
+                    cacheUserPreferences();
+
+                    // Initialize local visit counter
+                    (async () => {
+                        const visits = await getFromCache('static', 'visit_count') || 0;
+                        document.getElementById('visitCount').textContent = `Local visits: ${visits} (14-day refresh)`;
+                    })();
+
+                    // Track page view (14-day refresh)
+                    trackPageView(supabase);
+
+                    // Track button click (14-day refresh)
+                    const btn = document.getElementById('posterwallBtn');
+                    if (btn) {
+                        btn.addEventListener('click', async function () {
+                            await trackButtonClick(supabase, 'postermywall');
+                        });
+                    }
+
+                    // Track back button (14-day refresh)
+                    const backBtn = document.querySelector('.back-button');
+                    if (backBtn) {
+                        backBtn.addEventListener('click', async function () {
+                            await trackBackClick(supabase);
+                        });
+                    }
+                } else {
+                    // Still try to load static content even if Supabase fails
+                    loadLogo();
+                    cacheStaticElements();
+                }
+            } catch (e) {
+                // Absolutely nothing - eat all errors
+                try {
+                    loadLogo();
+                } catch { }
+            }
+        })();
+    </script>
+</body>
+
+</html>
